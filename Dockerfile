@@ -30,6 +30,7 @@ RUN <<'SHELL'
         > ./lib/git-version.js
 
     npm run clean
+    echo tsc -v
     npm run build
 SHELL
 
