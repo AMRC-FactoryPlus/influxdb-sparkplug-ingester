@@ -6,6 +6,8 @@
 # Environment
 .env
 
+dist/
+
 # Secrets
 /keytabs/
 /volumes/
