@@ -1,4 +1,4 @@
-#syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1
 # The line above must be the first line in the file!
 
 ARG acs_build=ghcr.io/amrc-factoryplus/utilities-build:v1.0.8
