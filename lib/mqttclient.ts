@@ -63,13 +63,14 @@ export default class MQTTClient {
         mqtt.on("message", this.on_message.bind(this));
         mqtt.on("close", this.on_close.bind(this));
         mqtt.on("reconnect", this.on_reconnect.bind(this));
-        logger.info("👂 Subscribing to entire Factory+ namespace");
-        // We subscribe to the whole Sparkplug namespace
-        mqtt.subscribe('spBv1.0/#');
+
+        logger.info("Connecting to Factory+ broker...");
     }
 
     on_connect() {
         logger.info("🔌 Connected to Factory+ broker");
+        logger.info("👂 Subscribing to entire Factory+ namespace");
+        this.mqtt.subscribe('spBv1.0/#');
     }
 
     on_close() {
