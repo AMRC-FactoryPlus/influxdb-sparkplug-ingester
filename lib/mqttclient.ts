@@ -73,11 +73,11 @@ export default class MQTTClient {
     }
 
     on_close() {
-        logger.info(`❌ Disconnected from Factory+ broker`);
+        logger.warn(`❌ Disconnected from Factory+ broker`);
     }
 
     on_reconnect() {
-        logger.info(`⚠️ Reconnecting to Factory+ broker...`);
+        logger.warn(`⚠️ Reconnecting to Factory+ broker...`);
     }
 
     on_error(error: any) {
@@ -245,7 +245,7 @@ export default class MQTTClient {
         }
 
         writeApi.close().then(() => {
-            logger.info(`Written to InfluxDB: [${birth.type}] ${fullName} = ${value}`);
+            logger.debug(`Written to InfluxDB: [${birth.type}] ${fullName} = ${value}`);
         })
     }
 
