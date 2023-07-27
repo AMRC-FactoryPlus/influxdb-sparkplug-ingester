@@ -111,7 +111,6 @@ export default class MQTTClient {
                 // Don't handle Node births
                 if (!topic.address.device) return;
 
-
                 let instance = null;
                 let schema = null;
 
