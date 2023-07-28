@@ -38,6 +38,11 @@ if (!batchSize) {
     throw new Error("BATCH_SIZE environment variable is not set");
 }
 
+const flushInterval: number = Number.parseInt(process.env.FLUSH_INTERVAL);
+if (!flushInterval) {
+    throw new Error("FLUSH_INTERVAL environment variable is not set");
+}
+
 let i = 0;
 
 // Node.js HTTP client OOTB does not reuse established TCP connections, a custom node HTTP agent
@@ -55,14 +60,15 @@ const influxDB = new InfluxDB({
     }
 })
 
+let interval: any;
+
 /* points/lines are batched in order to minimize networking and increase performance */
-const flushBatchSize = batchSize;
 
 const writeApi = influxDB.getWriteApi(influxOrganisation, 'default', 'ns', {
     /* the maximum points/lines to send in a single batch to InfluxDB server */
-    batchSize: flushBatchSize + 1, // don't let automatically flush data
+    batchSize: batchSize + 1, // don't let automatically flush data
     /* maximum time in millis to keep points in an unflushed batch, 0 means don't periodically flush */
-    flushInterval: 0,
+    flushInterval: 0, // Never allow the package to flush: we'll flush manually
     /* maximum size of the retry buffer - it contains items that could not be sent for the first time */
     maxBufferLines: 30_000,
     /* the count of internally-scheduled retries upon write failure, the delays between write attempts follow an exponential backoff strategy if there is no Retry-After HTTP header */
@@ -91,17 +97,20 @@ export default class MQTTClient {
     async init() {
 
         process.on('exit', () => {
-            this.flushBuffer();
+            this.flushBuffer('EXIT');
             keepAliveAgent.destroy();
         })
 
         return this;
     }
 
-    private flushBuffer() {
+    private flushBuffer(source: string) {
         let bufferSize = i;
+        i = 0;
         writeApi.flush().then(() => {
-            logger.info(`🚀 Flushed ${bufferSize} points to InfluxDB`);
+            logger.info(`🚀 Flushed ${bufferSize} points to InfluxDB [${source}]`);
+            // Reset the interval
+            this.resetInterval();
         })
     }
 
@@ -123,13 +132,21 @@ export default class MQTTClient {
         logger.info("🔌 Connected to Factory+ broker");
         logger.info("👂 Subscribing to entire Factory+ namespace");
         this.mqtt.subscribe('spBv1.0/#');
+        this.resetInterval();
+    }
+
+    private resetInterval() {
+        clearInterval(interval);
+        interval = setInterval(() => {
+            this.flushBuffer(`${flushInterval}ms INTERVAL`);
+        }, flushInterval);
     }
 
     on_close() {
         logger.warn(`❌ Disconnected from Factory+ broker`);
 
         // Flush any remaining data
-        this.flushBuffer();
+        this.flushBuffer('CONN_CLOSE');
     }
 
     on_reconnect() {
@@ -139,7 +156,7 @@ export default class MQTTClient {
     on_error(error: any) {
         logger.error("🚨 MQTT error: %o", error);
         // Flush any remaining data
-        this.flushBuffer();
+        this.flushBuffer('MQTT_ERROR');
     }
 
     async on_message(topicString: string, message: Uint8Array | Reader) {
@@ -334,17 +351,16 @@ export default class MQTTClient {
 
         i++;
 
-        logger.debug(`Added to write buffer (${i}/${flushBatchSize}): [${birth.type}] ${topic.address}/${birth.name} = ${value}`);
+        logger.debug(`Added to write buffer (${i}/${batchSize}): [${birth.type}] ${topic.address}/${birth.name} = ${value}`);
 
-        if (i >= flushBatchSize) {
-            this.flushBuffer();
-            i = 0;
+        if (i >= batchSize) {
+            this.flushBuffer('BATCH');
         }
     }
 
     setNestedValue(obj, path, value) {
-        for (var i = 0; i < path.length - 1; i++) {
-            obj = obj[path[i]] = obj[path[i]] || {};
+        for (let k = 0; k < path.length - 1; k++) {
+            obj = obj[path[k]] = obj[path[k]] || {};
         }
         obj[path[path.length - 1]] = value;
         return obj;
