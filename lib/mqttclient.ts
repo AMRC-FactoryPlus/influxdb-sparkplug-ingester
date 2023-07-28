@@ -354,7 +354,7 @@ export default class MQTTClient {
         logger.debug(`Added to write buffer (${i}/${batchSize}): [${birth.type}] ${topic.address}/${birth.name} = ${value}`);
 
         if (i >= batchSize) {
-            this.flushBuffer('BATCH');
+            this.flushBuffer(`${batchSize} point BATCH`);
         }
     }
 
