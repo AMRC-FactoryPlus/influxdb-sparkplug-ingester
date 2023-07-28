@@ -38,11 +38,6 @@ if (!batchSize) {
     throw new Error("BATCH_SIZE environment variable is not set");
 }
 
-const flushInterval: number = Number.parseInt(process.env.FLUSH_INTERVAL);
-if (!flushInterval) {
-    throw new Error("FLUSH_INTERVAL environment variable is not set");
-}
-
 let i = 0;
 
 // Node.js HTTP client OOTB does not reuse established TCP connections, a custom node HTTP agent
@@ -61,12 +56,13 @@ const influxDB = new InfluxDB({
 })
 
 /* points/lines are batched in order to minimize networking and increase performance */
+const flushBatchSize = batchSize;
 
 const writeApi = influxDB.getWriteApi(influxOrganisation, 'default', 'ns', {
     /* the maximum points/lines to send in a single batch to InfluxDB server */
-    batchSize: batchSize + 1, // don't let automatically flush data
+    batchSize: flushBatchSize + 1, // don't let automatically flush data
     /* maximum time in millis to keep points in an unflushed batch, 0 means don't periodically flush */
-    flushInterval: flushInterval,
+    flushInterval: 0,
     /* maximum size of the retry buffer - it contains items that could not be sent for the first time */
     maxBufferLines: 30_000,
     /* the count of internally-scheduled retries upon write failure, the delays between write attempts follow an exponential backoff strategy if there is no Retry-After HTTP header */
@@ -105,7 +101,7 @@ export default class MQTTClient {
     private flushBuffer() {
         let bufferSize = i;
         writeApi.flush().then(() => {
-            logger.info(`🚀 Buffer capacity reached. Flushed ${bufferSize} points to InfluxDB`);
+            logger.info(`🚀 Flushed ${bufferSize} points to InfluxDB`);
         })
     }
 
@@ -338,9 +334,9 @@ export default class MQTTClient {
 
         i++;
 
-        logger.debug(`Added to write buffer (${i}/${batchSize}): [${birth.type}] ${topic.address}/${birth.name} = ${value}`);
+        logger.debug(`Added to write buffer (${i}/${flushBatchSize}): [${birth.type}] ${topic.address}/${birth.name} = ${value}`);
 
-        if (i >= batchSize) {
+        if (i >= flushBatchSize) {
             this.flushBuffer();
             i = 0;
         }
