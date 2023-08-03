@@ -317,6 +317,7 @@ export default class MQTTClient {
                         type: obj.type,
                         alias: alias,
                         unit: obj.properties?.engUnit?.value,
+                        transient: !(obj.properties?.recordToDB?.value)
                     };
                     return acc;
                 }, {}));
@@ -400,6 +401,10 @@ export default class MQTTClient {
     writeToInfluxDB(birth, topic: Topic, value) {
 
         if (value === null) return;
+        if (birth.transient) {
+            logger.debug(`Metric ${birth.name} is transient, not writing to InfluxDB`);
+            return;
+        }
 
         // Get the value after the last /
         let metricName = birth.name.split('/').pop();
