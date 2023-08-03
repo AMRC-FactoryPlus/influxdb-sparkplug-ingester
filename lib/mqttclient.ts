@@ -315,7 +315,8 @@ export default class MQTTClient {
                         },
                         name: obj.name,
                         type: obj.type,
-                        alias: alias
+                        alias: alias,
+                        unit: obj.properties?.engUnit?.value,
                     };
                     return acc;
                 }, {}));
@@ -417,6 +418,7 @@ export default class MQTTClient {
             node: topic.address.node,
             device: topic.address.device,
             path: path,
+            unit: birth.unit
         });
 
         let numVal = null;
