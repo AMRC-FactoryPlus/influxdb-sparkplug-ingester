@@ -1,6 +1,6 @@
 {
   "name": "influxdb-sparkplug-ingester",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "An ingestion engine to enable InfluxDB to be a fully-featured Sparkplug historian",
   "author": "AMRC",
   "license": "MIT",
